@@ -7,6 +7,8 @@ API сервис для обработки и классификации жал�
 - Прием и обработка жалоб клиентов
 - Автоматическая классификация жалоб с помощью GPT-4
 - Анализ тональности текста через APILayer
+- Определение спама с помощью GPT-4
+- Геолокация по IP через IP-API
 - Сохранение данных в SQLite
 - REST API с FastAPI
 
@@ -17,6 +19,7 @@ API сервис для обработки и классификации жал�
 - SQLAlchemy
 - OpenAI GPT-4
 - APILayer Sentiment Analysis
+- IP-API Geolocation
 
 ## Установка
 
@@ -41,7 +44,7 @@ pip install -r requirements.txt
 
 4. Создайте файл .env в корневой директории:
 ```
-APILAYER_KEY=your_api_key_here
+APILAYER_KEY=your_apilayer_key
 OPENAI_API_KEY=your_openai_key
 ```
 
@@ -51,7 +54,7 @@ OPENAI_API_KEY=your_openai_key
 uvicorn main:app --reload
 ```
 
-Сервер будет доступен по адресу: http://localhost:8000
+API будет доступно по адресу: http://localhost:8000
 
 ## API Endpoints
 
@@ -60,6 +63,7 @@ uvicorn main:app --reload
 ```bash
 curl -X POST "http://localhost:8000/complaints/" \
      -H "Content-Type: application/json" \
+     -H "X-Forwarded-For: 8.8.8.8" \
      -d '{"text": "Не приходит SMS-код"}'
 ```
 
@@ -69,10 +73,18 @@ curl -X POST "http://localhost:8000/complaints/" \
 curl "http://localhost:8000/complaints/1"
 ```
 
-## Документация API
+## Пример ответа
 
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+```json
+{
+    "id": 1,
+    "status": "open",
+    "sentiment": "negative",
+    "category": "техническая",
+    "is_spam": false,
+    "location": "Moscow, Russia"
+}
+```
 
 ## Структура проекта
 
@@ -82,9 +94,10 @@ curl "http://localhost:8000/complaints/1"
 ├── database.py       # Конфигурация базы данных
 ├── models.py         # Модели данных
 ├── requirements.txt  # Зависимости
+├── .env             # Переменные окружения (не включен в репозиторий)
 └── README.md        # Документация
 ```
 
 ## Лицензия
 
-MIT 
+MIT
