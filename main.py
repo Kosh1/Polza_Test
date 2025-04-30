@@ -1,12 +1,13 @@
-from fastapi import FastAPI, HTTPException, Depends, Header
+from fastapi import FastAPI, HTTPException, Depends, Header, Query
 from sqlalchemy.orm import Session
 import requests
 import os
 from dotenv import load_dotenv
-from typing import Optional
+from typing import Optional, List
 from openai import OpenAI
 import json
-import logging  # добавим импорт
+import logging
+from datetime import datetime
 
 from database import get_db, engine
 import models
@@ -182,7 +183,8 @@ def create_complaint(
             category=categorize_complaint(complaint.text),
             is_spam=is_spam,
             ip_address=ip_address,
-            location=location
+            location=location,
+            timestamp=datetime.utcnow()  
         )
         
         db.add(db_complaint)
@@ -205,4 +207,66 @@ def get_complaint(complaint_id: int, db: Session = Depends(get_db)):
     complaint = db.query(Complaint).filter(Complaint.id == complaint_id).first()
     if complaint is None:
         raise HTTPException(status_code=404, detail="Complaint not found")
-    return complaint 
+    return complaint
+
+@app.patch("/complaints/{complaint_id}/close", response_model=ComplaintResponse)
+def close_complaint(
+    complaint_id: int,
+    db: Session = Depends(get_db),
+    api_key: str = Header(..., alias="X-API-Key")
+):
+    """
+    Закрывает обращение по ID. Требуется API-ключ для авторизации.
+    """
+    # Проверка API-ключа (добавьте ваш ключ в переменные окружения)
+    if api_key != os.getenv("EXTERNAL_SERVICE_API_KEY"):
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    
+    complaint = db.query(Complaint).filter(Complaint.id == complaint_id).first()
+    if complaint is None:
+        raise HTTPException(status_code=404, detail="Complaint not found")
+    
+    if complaint.status == "closed":
+        raise HTTPException(status_code=400, detail="Complaint is already closed")
+    
+    # Обновляем статус
+    complaint.status = "closed"
+    db.commit()
+    db.refresh(complaint)
+    
+    return complaint
+
+@app.get("/complaints/", response_model=List[ComplaintResponse])
+def get_complaints(
+    status: str = Query(None, description="Filter by status (open/closed)"),
+    is_spam: bool = Query(None, description="Filter by spam (true/false)"),
+    category: str = Query(None, description="Filter by category (техническая/оплата/другое)"),
+    start_date: datetime = Query(None, description="Start date (YYYY-MM-DDTHH:MM:SS)"),
+    end_date: datetime = Query(None, description="End date (YYYY-MM-DDTHH:MM:SS)"),
+    limit: int = Query(100, description="Number of records per page"),
+    offset: int = Query(0, description="Offset for pagination"),
+    db: Session = Depends(get_db)  # Добавляем зависимость БД
+):
+    try:
+        query = db.query(Complaint)
+        
+        # Применяем фильтры
+        if status:
+            query = query.filter(Complaint.status == status)
+        if is_spam is not None:
+            query = query.filter(Complaint.is_spam == is_spam)
+        if category:
+            query = query.filter(Complaint.category == category)
+        
+        # Фильтрация по дате
+        if start_date:
+            query = query.filter(Complaint.timestamp >= start_date)
+        if end_date:
+            query = query.filter(Complaint.timestamp <= end_date)
+            
+        # Сортировка и пагинация
+        complaints = query.order_by(Complaint.timestamp.desc()).offset(offset).limit(limit).all()
+        
+        return complaints
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
