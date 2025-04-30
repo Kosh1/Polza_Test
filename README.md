@@ -48,6 +48,10 @@ pip install -r requirements.txt
 
 # 4. Настройте переменные окружения
 cp .env.example .env
+Пример .env
+  APILAYER_KEY=kmgZE3QZ0jbqdnlqQCOtZM6WzUG251mp
+  OPENAI_API_KEY=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
+  EXTERNAL_SERVICE_API_KEY=tfaGdu5JuMcgy3pa2JpViZ8T1GC7y6E5EBDwiOd2L50Td0
 # Отредактируйте .env файл
 Запуск
 bash
@@ -117,16 +121,13 @@ customer-complaints-api/
 ├── requirements.txt  # Зависимости
 ├── .env.example      # Шаблон переменных окружения
 └── README.md         # Документация
-🤝 Contributing
-Форкните репозиторий
 
-Создайте ветку (git checkout -b feature/AmazingFeature)
-
-Сделайте коммит (git commit -m 'Add some AmazingFeature')
-
-Запушьте изменения (git push origin feature/AmazingFeature)
-
-Откройте Pull Request
+Данные по телеграм-боту
+  Токен:
+  7385370202:AAGKmTcsRHKqlATpok01yoAV8NwDGj8mhyQ
+  
+  Ссылка:
+  t.me/ppolzatest_bot
 
 📜 Лицензия
 Распространяется под MIT License.
